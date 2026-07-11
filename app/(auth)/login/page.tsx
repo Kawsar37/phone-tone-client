@@ -23,7 +23,7 @@ export default function LoginPage() {
     });
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -103,7 +103,7 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-8 text-center text-sm text-neutral/60">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
           href="/register"
           className="text-primary font-semibold hover:underline"

@@ -1,50 +1,32 @@
-import { PhoneCard } from "./PhoneCard";
+"use client";
 
-// Mock data (Will be replaced by API fetch later)
-const featuredPhones = [
-  {
-    id: "1",
-    name: "iPhone 15 Pro Max",
-    image:
-      "https://images.unsplash.com/photo-1696446702183-cbd13d78e1e7?q=80&w=800&auto=format&fit=crop",
-    brand: "Apple",
-    price: 1199,
-    rating: 4.9,
-    shortDesc: "Titanium design with the powerful A17 Pro chip.",
-  },
-  {
-    id: "2",
-    name: "Galaxy S24 Ultra",
-    image:
-      "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=800&auto=format&fit=crop",
-    brand: "Samsung",
-    price: 1299,
-    rating: 4.8,
-    shortDesc: "Galaxy AI and the ultimate S Pen experience.",
-  },
-  {
-    id: "3",
-    name: "Pixel 8 Pro",
-    image:
-      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=800&auto=format&fit=crop",
-    brand: "Google",
-    price: 999,
-    rating: 4.7,
-    shortDesc: "The best of Google AI in a beautiful design.",
-  },
-  {
-    id: "4",
-    name: "OnePlus 12",
-    image:
-      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=800&auto=format&fit=crop",
-    brand: "OnePlus",
-    price: 799,
-    rating: 4.6,
-    shortDesc: "Blazing fast performance with Hasselblad camera.",
-  },
-];
+import { useState, useEffect } from "react";
+import { PhoneCard } from "./PhoneCard";
+import { PhoneCardSkeleton } from "./PhoneCardSkeleton";
+import { phoneAPI } from "@/utils/api";
+import { IPhone } from "@/types";
+import { toast } from "sonner";
 
 export function FeaturedPhones() {
+  const [phones, setPhones] = useState<IPhone[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedPhones = async () => {
+      try {
+        // Fetch the top 4 highest-rated phones from the backend
+        const { data } = await phoneAPI.getPhones({ limit: 4, sort: "rating" });
+        setPhones(data.phones);
+      } catch {
+        toast.error("Failed to load featured phones");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedPhones();
+  }, []);
+
   return (
     <section className="py-20 bg-bg-light">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -58,9 +40,28 @@ export function FeaturedPhones() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredPhones.map((phone) => (
-            <PhoneCard key={phone.id} {...phone} />
-          ))}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <PhoneCardSkeleton key={i} />
+            ))
+          ) : phones.length > 0 ? (
+            phones.map((phone) => (
+              <PhoneCard
+                key={phone._id}
+                id={phone._id}
+                name={phone.name}
+                image={phone.images[0]}
+                brand={phone.brand}
+                price={phone.price}
+                rating={phone.rating}
+                shortDesc={phone.shortDescription}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-10 text-neutral/60">
+              No featured phones available at the moment.
+            </div>
+          )}
         </div>
       </div>
     </section>

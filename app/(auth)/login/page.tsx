@@ -1,52 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
+import { useAuth } from "@/providers/AuthProvider";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Demo Auto-fill feature
   const fillDemoCredentials = () => {
     setEmail("admin@phonetone.com");
     setPassword("Admin123!");
-    toast.info("Demo credentials filled!", {
-      description: "Click Sign In to continue.",
-    });
+    toast.info("Demo credentials filled!");
   };
 
   const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const { data, error } = await authClient.signIn.email({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error("Login Failed", {
-          description: error.message || "Invalid email or password.",
-        });
-        return;
-      }
-
-      toast.success("Welcome back!", {
-        description: "You have successfully logged in.",
-      });
-      router.push("/"); // Redirect to home or dashboard
-      router.refresh(); // Refresh to update Navbar session state
-    } catch (err) {
-      toast.error("Something went wrong. Please try again.");
+      await login(email, password);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Invalid email or password.";
+      toast.error("Login Failed", { description: message });
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +77,6 @@ export default function LoginPage() {
           Sign In
         </Button>
 
-        {/* Demo Button */}
         <Button type="button" variant="outline" onClick={fillDemoCredentials}>
           Fill Demo Credentials
         </Button>

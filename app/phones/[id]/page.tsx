@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   FiChevronRight,
@@ -10,151 +11,133 @@ import {
   FiShoppingCart,
   FiZap,
   FiCheck,
+  FiLoader,
 } from "react-icons/fi";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { PhoneCard } from "@/components/shared/PhoneCard";
+import { phoneAPI, cartAPI } from "@/utils/api";
+import { IPhone } from "@/types";
+import { useAuth } from "@/providers/AuthProvider";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useSession } from "@/lib/auth-client";
-import { useCart } from "@/hooks/use-cart";
-
-// --- MOCK DATA (Will be replaced by API fetch later) ---
-const mockPhone = {
-  id: "1",
-  name: "iPhone 15 Pro Max",
-  brand: "Apple",
-  price: 1199,
-  rating: 4.9,
-  shortDescription:
-    "Titanium design. A17 Pro chip. The most powerful iPhone ever.",
-  description:
-    "iPhone 15 Pro Max. Forged in titanium and featuring the groundbreaking A17 Pro chip, a customizable Action button, and the most powerful iPhone camera system ever. The aerospace-grade titanium shell makes it the lightest Pro model ever, offering unmatched durability and premium feel.",
-  images: [
-    "https://images.unsplash.com/photo-1696446702183-cbd13d78e1e7?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=800&auto=format&fit=crop",
-  ],
-  colors: [
-    "Natural Titanium",
-    "Blue Titanium",
-    "White Titanium",
-    "Black Titanium",
-  ],
-  specs: {
-    Display: "6.7-inch Super Retina XDR OLED, 120Hz ProMotion",
-    Processor: "Apple A17 Pro (3 nm)",
-    RAM: "8 GB",
-    Storage: "256GB / 512GB / 1TB",
-    "Rear Camera": "48 MP (Main) + 12 MP (Ultrawide) + 12 MP (Telephoto 5x)",
-    "Front Camera": "12 MP, TrueDepth",
-    Battery: "4422 mAh, 65W wired, 15W MagSafe",
-    OS: "iOS 17, upgradable to iOS 18",
-    "5G": "Yes",
-    "Water Resistance": "IP68 dust/water resistant (up to 6m for 30 min)",
-  },
-  reviews: [
-    {
-      user: "Alex M.",
-      rating: 5,
-      comment:
-        "The titanium body makes it so much lighter than the 14 Pro Max. Camera zoom is incredible!",
-    },
-    {
-      user: "Sarah K.",
-      rating: 4,
-      comment:
-        "Amazing phone, but the price is definitely steep. Battery life is slightly better than last gen.",
-    },
-    {
-      user: "David L.",
-      rating: 5,
-      comment: "Action button is surprisingly useful. Best iPhone I've owned.",
-    },
-  ],
-};
-
-const relatedPhones = [
-  {
-    id: "2",
-    name: "Galaxy S24 Ultra",
-    image:
-      "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=800&auto=format&fit=crop",
-    brand: "Samsung",
-    price: 1299,
-    rating: 4.8,
-    shortDesc: "Galaxy AI and S Pen experience.",
-  },
-  {
-    id: "3",
-    name: "Pixel 8 Pro",
-    image:
-      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=800&auto=format&fit=crop",
-    brand: "Google",
-    price: 999,
-    rating: 4.7,
-    shortDesc: "Best of Google AI in beautiful design.",
-  },
-  {
-    id: "4",
-    name: "OnePlus 12",
-    image:
-      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=800&auto=format&fit=crop",
-    brand: "OnePlus",
-    price: 799,
-    rating: 4.6,
-    shortDesc: "Blazing fast with Hasselblad camera.",
-  },
-  {
-    id: "5",
-    name: "iPhone 15 Pro",
-    image:
-      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800&auto=format&fit=crop",
-    brand: "Apple",
-    price: 999,
-    rating: 4.8,
-    shortDesc: "Compact Pro with titanium design.",
-  },
-];
 
 export default function PhoneDetailsPage() {
-  const [mainImage, setMainImage] = useState(mockPhone.images[0]);
-  const [selectedColor, setSelectedColor] = useState(mockPhone.colors[0]);
+  const { id } = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const [phone, setPhone] = useState<IPhone | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mainImage, setMainImage] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCart();
-  const [activeTab, setActiveTab] = useState<"overview" | "specs" | "reviews">(
-    "overview",
-  );
+  const [activeTab, setActiveTab] = useState<"overview" | "specs">("overview");
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  const { data: session } = useSession();
-  console.log("User session:", session);
+  useEffect(() => {
+    const fetchPhone = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const { data } = await phoneAPI.getPhoneById(id as string);
+        setPhone(data.phone);
+        setMainImage(data.phone.images[0]);
+        setSelectedColor(data.phone.colors[0] || "");
+      } catch {
+        toast.error("Failed to load phone details");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPhone();
+  }, [id]);
 
-  const handleAddToCart = () => {
-    if (!session?.user) {
-      toast.error("Please log in to add items to your cart.", {
-        description: "You need to be logged in to add items to your cart.",
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast.error("Please login to add items to cart", {
+        action: { label: "Login", onClick: () => router.push("/login") },
       });
       return;
     }
-    addToCart({
-      id: mockPhone.id,
-      name: mockPhone.name,
-      image: mockPhone.images[0],
-      price: mockPhone.price,
-    });
 
-    toast.success("Added to Cart!", {
-      description: `${quantity}x ${mockPhone.name} (${selectedColor}) added to your cart.`,
-    });
+    if (!phone) return;
+
+    setIsAddingToCart(true);
+    try {
+      await cartAPI.addToCart({ phoneId: phone._id, quantity });
+      toast.success("Added to Cart!", {
+        description: `${quantity}x ${phone.name} added.`,
+      });
+    } catch {
+      toast.error("Failed to add to cart");
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex min-h-[60vh] items-center justify-center bg-bg-light">
+          <FiLoader className="animate-spin text-primary" size={40} />
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!phone) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex min-h-[60vh] items-center justify-center bg-bg-light">
+          <div className="text-center">
+            <p className="text-xl font-bold text-neutral mb-4">
+              Phone not found
+            </p>
+            <Link
+              href="/phones"
+              className="text-primary font-semibold hover:underline"
+            >
+              Back to Explore
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  const specsData = [
+    { label: "Operating System", value: phone.operatingSystem },
+    { label: "Processor", value: phone.processor },
+    { label: "Chipset", value: phone.chipset },
+    { label: "GPU", value: phone.gpu },
+    { label: "RAM", value: phone.ram },
+    { label: "Storage", value: phone.storage },
+    {
+      label: "Display",
+      value: `${phone.display.size} ${phone.display.type}, ${phone.display.refreshRate}`,
+    },
+    { label: "Resolution", value: phone.display.resolution },
+    {
+      label: "Battery",
+      value: `${phone.battery.capacity}, ${phone.battery.charging}`,
+    },
+    { label: "Rear Camera", value: phone.camera.rear },
+    { label: "Front Camera", value: phone.camera.front },
+    { label: "Network", value: phone.connectivity.network },
+    { label: "Wi-Fi", value: phone.connectivity.wifi },
+    { label: "Bluetooth", value: phone.connectivity.bluetooth },
+  ];
 
   return (
     <>
       <Navbar />
       <main className="min-h-screen bg-bg-light pb-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          {/* Breadcrumbs */}
           <nav className="flex items-center gap-2 text-sm text-neutral/60 mb-8">
             <Link href="/" className="hover:text-primary transition-colors">
               Home
@@ -167,16 +150,15 @@ export default function PhoneDetailsPage() {
               Phones
             </Link>
             <FiChevronRight size={14} />
-            <span className="text-neutral font-medium">{mockPhone.name}</span>
+            <span className="text-neutral font-medium truncate max-w-[200px]">
+              {phone.name}
+            </span>
           </nav>
 
-          {/* Top Section: Gallery + Info */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16">
-            {/* Image Gallery */}
             <div className="flex flex-col-reverse md:flex-row gap-4">
-              {/* Thumbnails */}
               <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:max-h-[500px] pb-2 md:pb-0 md:pr-2">
-                {mockPhone.images.map((img, i) => (
+                {phone.images.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setMainImage(img)}
@@ -187,45 +169,42 @@ export default function PhoneDetailsPage() {
                     }`}
                   >
                     <Image
+                      height={80}
+                      width={80}
                       src={img}
                       alt={`View ${i + 1}`}
                       className="w-full h-full object-cover"
-                      height={80}
-                      width={80}
                     />
                   </button>
                 ))}
               </div>
 
-              {/* Main Image */}
               <div className="flex-grow bg-white rounded-xl border border-neutral/5 p-6 flex items-center justify-center aspect-square md:aspect-auto md:max-h-[600px]">
                 <Image
                   height={600}
                   width={600}
                   src={mainImage}
-                  alt={mockPhone.name}
+                  alt={phone.name}
                   className="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"
                 />
               </div>
             </div>
 
-            {/* Product Info */}
             <div className="flex flex-col">
               <span className="inline-block w-fit rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary mb-3">
-                {mockPhone.brand}
+                {phone.brand}
               </span>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral mb-3">
-                {mockPhone.name}
+                {phone.name}
               </h1>
 
-              {/* Rating */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex text-secondary">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <FiStar
                       key={i}
                       className={
-                        i < Math.floor(mockPhone.rating)
+                        i < Math.floor(phone.rating)
                           ? "fill-current"
                           : "text-neutral/20"
                       }
@@ -234,47 +213,43 @@ export default function PhoneDetailsPage() {
                   ))}
                 </div>
                 <span className="text-sm font-semibold text-neutral">
-                  {mockPhone.rating}
-                </span>
-                <span className="text-sm text-neutral/50">
-                  ({mockPhone.reviews.length} Reviews)
+                  {phone.rating}
                 </span>
               </div>
 
               <p className="text-4xl font-extrabold text-primary mb-4">
-                ${mockPhone.price}
+                ${phone.price}
               </p>
-
               <p className="text-neutral/70 leading-relaxed mb-8">
-                {mockPhone.shortDescription}
+                {phone.shortDescription}
               </p>
 
-              {/* Colors */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-neutral mb-3">
-                  Color:{" "}
-                  <span className="font-normal text-neutral/70">
-                    {selectedColor}
-                  </span>
-                </h3>
-                <div className="flex flex-wrap gap-3">
-                  {mockPhone.colors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                        selectedColor === color
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-neutral/20 text-neutral/70 hover:border-neutral/40"
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
+              {phone.colors.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-bold text-neutral mb-3">
+                    Color:{" "}
+                    <span className="font-normal text-neutral/70">
+                      {selectedColor}
+                    </span>
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    {phone.colors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                          selectedColor === color
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-neutral/20 text-neutral/70 hover:border-neutral/40"
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Quantity */}
               <div className="mb-8">
                 <h3 className="text-sm font-bold text-neutral mb-3">
                   Quantity
@@ -282,7 +257,7 @@ export default function PhoneDetailsPage() {
                 <div className="inline-flex items-center border border-neutral/20 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-3 hover:bg-bg-light text-neutral transition-colors"
+                    className="p-3 hover:bg-bg-light text-neutral"
                   >
                     <FiMinus size={16} />
                   </button>
@@ -291,27 +266,31 @@ export default function PhoneDetailsPage() {
                   </span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-3 hover:bg-bg-light text-neutral transition-colors"
+                    className="p-3 hover:bg-bg-light text-neutral"
                   >
                     <FiPlus size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mt-auto">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-primary text-white font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
+                  disabled={isAddingToCart}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-primary text-white font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-70"
                 >
-                  <FiShoppingCart size={20} /> Add to Cart
+                  {isAddingToCart ? (
+                    <FiLoader className="animate-spin" size={20} />
+                  ) : (
+                    <FiShoppingCart size={20} />
+                  )}
+                  Add to Cart
                 </button>
                 <button className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-secondary text-white font-semibold shadow-lg shadow-secondary/20 hover:bg-secondary/90 transition-all">
                   <FiZap size={20} /> Buy Now
                 </button>
               </div>
 
-              {/* Trust Badges */}
               <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-neutral/10">
                 <div className="flex items-center gap-2 text-sm text-neutral/70">
                   <FiCheck className="text-primary" /> Free Next-Day Shipping
@@ -329,11 +308,9 @@ export default function PhoneDetailsPage() {
             </div>
           </div>
 
-          {/* Tabs Section */}
           <div className="bg-white rounded-xl border border-neutral/5 p-6 sm:p-8 mb-16">
-            {/* Tab Headers */}
             <div className="flex border-b border-neutral/10 mb-8 overflow-x-auto">
-              {(["overview", "specs", "reviews"] as const).map((tab) => (
+              {(["overview", "specs"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -343,11 +320,7 @@ export default function PhoneDetailsPage() {
                       : "text-neutral/60 hover:text-neutral"
                   }`}
                 >
-                  {tab === "overview"
-                    ? "Overview"
-                    : tab === "specs"
-                      ? "Specifications"
-                      : `Reviews (${mockPhone.reviews.length})`}
+                  {tab === "overview" ? "Overview" : "Specifications"}
                   {activeTab === tab && (
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
                   )}
@@ -355,81 +328,32 @@ export default function PhoneDetailsPage() {
               ))}
             </div>
 
-            {/* Tab Content */}
             <div>
               {activeTab === "overview" && (
                 <div className="prose max-w-none text-neutral/80 leading-relaxed">
-                  <p>{mockPhone.description}</p>
-                  <p className="mt-4">
-                    Experience the perfect blend of performance and design. The
-                    aerospace-grade titanium shell provides exceptional
-                    durability while keeping the device incredibly light.
-                    Capture stunning photos and videos with the advanced camera
-                    system, and enjoy all-day battery life.
-                  </p>
+                  <p>{phone.description}</p>
                 </div>
               )}
 
               {activeTab === "specs" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                  {Object.entries(mockPhone.specs).map(([key, value]) => (
+                  {specsData.map((spec) => (
                     <div
-                      key={key}
+                      key={spec.label}
                       className="flex justify-between py-3 border-b border-neutral/5"
                     >
                       <span className="text-sm font-medium text-neutral/60">
-                        {key}
+                        {spec.label}
                       </span>
                       <span className="text-sm font-semibold text-neutral text-right">
-                        {value}
+                        {spec.value}
                       </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === "reviews" && (
-                <div className="space-y-6">
-                  {mockPhone.reviews.map((review, i) => (
-                    <div
-                      key={i}
-                      className="pb-6 border-b border-neutral/5 last:border-0"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-neutral">
-                          {review.user}
-                        </h4>
-                        <div className="flex text-secondary">
-                          {Array.from({ length: review.rating }).map((_, j) => (
-                            <FiStar
-                              key={j}
-                              className="fill-current"
-                              size={14}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-sm text-neutral/70">
-                        {review.comment}
-                      </p>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
-
-          {/* Related Phones */}
-          <section>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral mb-8">
-              Related <span className="text-primary">Phones</span>
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedPhones.map((phone) => (
-                <PhoneCard key={phone.id} {...phone} />
-              ))}
-            </div>
-          </section>
         </div>
       </main>
       <Footer />

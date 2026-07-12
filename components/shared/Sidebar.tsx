@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { FiLogOut } from "react-icons/fi";
 
 interface SidebarLink {
   href: string;
@@ -12,15 +13,17 @@ interface SidebarLink {
 interface SidebarProps {
   links: SidebarLink[];
   title: string;
+  onLogout?: () => void;
 }
 
-export function Sidebar({ links, title }: SidebarProps) {
+export function Sidebar({ links, title, onLogout }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside className="w-full lg:w-64 flex-shrink-0">
       <div className="bg-white p-6 rounded-xl border border-neutral/5 shadow-sm sticky top-24">
         <h2 className="text-lg font-bold text-neutral mb-4">{title}</h2>
+
         <nav className="space-y-1">
           {links.map((link) => {
             const isActive = pathname === link.href;
@@ -41,6 +44,18 @@ export function Sidebar({ links, title }: SidebarProps) {
             );
           })}
         </nav>
+
+        {onLogout && (
+          <div className="pt-4 mt-4 border-t border-neutral/10">
+            <button
+              onClick={onLogout}
+              className="flex w-full items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+            >
+              <FiLogOut size={18} />
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

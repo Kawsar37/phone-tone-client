@@ -110,16 +110,6 @@ export default function AddPhonePage() {
           />
         </div>
 
-        <div className="bg-bg-light p-4 rounded-lg border border-neutral/10">
-          <p className="text-xs text-neutral/60">
-            <strong className="text-neutral">How it works:</strong> Once you
-            click submit, our backend will send the phone name to Google Gemini
-            AI. The AI will generate the price, display, camera, battery, and
-            processor specs in strict JSON format, merge your images, and save
-            it directly to MongoDB.
-          </p>
-        </div>
-
         <Button type="submit" isLoading={isSubmitting}>
           {isSubmitting
             ? "Generating Specs via AI..."

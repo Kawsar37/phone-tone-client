@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiTruck, FiCreditCard } from "react-icons/fi";
+import { FiTruck, FiCreditCard, FiLoader } from "react-icons/fi";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
-import { useCart } from "@/hooks/use-cart";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { cartAPI, orderAPI } from "@/utils/api";
+import { ICartItem } from "@/types";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, subtotal, deliveryCharge, total, clearCart } = useCart();
+  const [cart, setCart] = useState<ICartItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -24,11 +27,23 @@ export default function CheckoutPage() {
     paymentMethod: "cod",
   });
 
-  // Redirect if cart is empty
-  if (cart.length === 0) {
-    router.push("/cart");
-    return null;
-  }
+  useEffect(() => {
+    const fetchCart = async () => {
+      try {
+        const { data } = await cartAPI.getCart();
+        if (data.cart.length === 0) {
+          router.push("/cart");
+        } else {
+          setCart(data.cart);
+        }
+      } catch {
+        toast.error("Failed to load cart");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCart();
+  }, [router]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -40,17 +55,47 @@ export default function CheckoutPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call to backend
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await orderAPI.createOrder({
+        shippingAddress: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          district: formData.district,
+          area: formData.area,
+          address: formData.address,
+        },
+        paymentMethod: formData.paymentMethod,
+      });
 
-    toast.success("Order Placed Successfully!", {
-      description: "Thank you for your purchase. We will contact you shortly.",
-    });
-
-    clearCart();
-    setIsSubmitting(false);
-    router.push("/");
+      toast.success("Order Placed Successfully!", {
+        description: "Thank you for your purchase.",
+      });
+      router.push("/");
+    } catch {
+      toast.error("Failed to place order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex min-h-[60vh] items-center justify-center bg-bg-light">
+          <FiLoader className="animate-spin text-primary" size={40} />
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  const subtotal = cart.reduce(
+    (acc, item) => acc + item.phoneId.price * item.quantity,
+    0,
+  );
+  const deliveryCharge = subtotal > 500 ? 0 : 20;
+  const total = subtotal + deliveryCharge;
 
   return (
     <>
@@ -65,9 +110,7 @@ export default function CheckoutPage() {
             onSubmit={handleSubmit}
             className="grid grid-cols-1 lg:grid-cols-3 gap-8"
           >
-            {/* Forms */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Shipping Address */}
               <div className="bg-white p-6 rounded-xl border border-neutral/5 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -124,7 +167,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Payment Method */}
               <div className="bg-white p-6 rounded-xl border border-neutral/5 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-secondary/10 text-secondary">
@@ -175,7 +217,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white p-6 rounded-xl border border-neutral/5 shadow-sm sticky top-24">
                 <h2 className="text-lg font-bold text-neutral mb-4">
@@ -183,20 +224,22 @@ export default function CheckoutPage() {
                 </h2>
                 <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex gap-3 text-sm">
-                      <img
-                        src={item.image}
-                        alt={item.name}
+                    <div key={item._id} className="flex gap-3 text-sm">
+                      <Image
+                        height={48}
+                        width={48}
+                        src={item.phoneId.images[0]}
+                        alt={item.phoneId.name}
                         className="w-12 h-12 object-contain rounded bg-bg-light p-1"
                       />
                       <div className="flex-grow">
                         <p className="font-medium text-neutral line-clamp-1">
-                          {item.name}
+                          {item.phoneId.name}
                         </p>
                         <p className="text-neutral/50">Qty: {item.quantity}</p>
                       </div>
                       <p className="font-semibold text-neutral">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ${(item.phoneId.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   ))}

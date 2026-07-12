@@ -39,6 +39,8 @@ export const cartAPI = {
   addToCart: (data: { phoneId: string; quantity: number }) =>
     api.post("/api/cart", data),
   removeFromCart: (cartItemId: string) => api.delete(`/api/cart/${cartItemId}`),
+  updateCartQuantity: (cartItemId: string, quantity: number) =>
+    api.patch(`/api/cart/${cartItemId}`, { quantity }),
   clearCart: () => api.delete("/api/cart"),
 };
 
@@ -63,4 +65,9 @@ export const userAPI = {
   getAllUsers: () => api.get("/api/users"),
   updateUserStatus: (userId: string, status: "active" | "blocked") =>
     api.patch(`/api/users/${userId}/status`, { status }),
+};
+
+export const adminAPI = {
+  getStats: () => api.get("/api/admin/stats"),
+  getMonthlyOrders: () => api.get("/api/admin/monthly-orders"),
 };

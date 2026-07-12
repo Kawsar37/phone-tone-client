@@ -1,40 +1,35 @@
 "use client";
 
-import { FiPackage, FiTruck, FiCheckCircle, FiClock } from "react-icons/fi";
-
-// Mock data (Will be replaced by API fetch later)
-const mockOrders = [
-  {
-    id: "ORD-101",
-    date: "2026-07-10",
-    total: 1199,
-    status: "delivered",
-    items: 1,
-  },
-  {
-    id: "ORD-102",
-    date: "2026-07-11",
-    total: 2598,
-    status: "shipped",
-    items: 2,
-  },
-  {
-    id: "ORD-103",
-    date: "2026-07-12",
-    total: 799,
-    status: "pending",
-    items: 1,
-  },
-  {
-    id: "ORD-104",
-    date: "2026-07-05",
-    total: 1399,
-    status: "cancelled",
-    items: 1,
-  },
-];
+import { useState, useEffect } from "react";
+import {
+  FiPackage,
+  FiTruck,
+  FiCheckCircle,
+  FiClock,
+  FiLoader,
+} from "react-icons/fi";
+import { orderAPI } from "@/utils/api";
+import { IOrder } from "@/types";
+import { toast } from "sonner";
 
 export default function UserOrdersPage() {
+  const [orders, setOrders] = useState<IOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const { data } = await orderAPI.getMyOrders();
+        setOrders(data.orders);
+      } catch {
+        toast.error("Failed to load order history");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "delivered":
@@ -50,58 +45,75 @@ export default function UserOrdersPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-white rounded-xl border border-neutral/5">
+        <FiLoader className="animate-spin text-primary" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-6 sm:p-8 rounded-xl border border-neutral/5 shadow-sm">
       <h2 className="text-xl font-bold text-neutral mb-6">Order History</h2>
 
-      <div className="overflow-x-auto -mx-6 sm:mx-0">
-        <table className="w-full text-left min-w-[600px]">
-          <thead>
-            <tr className="border-b border-neutral/10 text-xs uppercase text-neutral/50 font-semibold tracking-wider">
-              <th className="pb-3 pr-4">Order ID</th>
-              <th className="pb-3 pr-4">Date</th>
-              <th className="pb-3 pr-4">Items</th>
-              <th className="pb-3 pr-4">Total</th>
-              <th className="pb-3">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral/5">
-            {mockOrders.map((order) => {
-              const config = getStatusConfig(order.status);
-              const Icon = config.icon;
+      {orders.length === 0 ? (
+        <div className="text-center py-12">
+          <FiPackage className="mx-auto text-neutral/30 mb-4" size={48} />
+          <p className="text-neutral/60">
+            You haven&apos;t placed any orders yet.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto -mx-6 sm:mx-0">
+          <table className="w-full text-left min-w-[600px]">
+            <thead>
+              <tr className="border-b border-neutral/10 text-xs uppercase text-neutral/50 font-semibold tracking-wider">
+                <th className="pb-3 pr-4">Order ID</th>
+                <th className="pb-3 pr-4">Date</th>
+                <th className="pb-3 pr-4">Items</th>
+                <th className="pb-3 pr-4">Total</th>
+                <th className="pb-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral/5">
+              {orders.map((order) => {
+                const config = getStatusConfig(order.orderStatus);
+                const Icon = config.icon;
 
-              return (
-                <tr
-                  key={order.id}
-                  className="hover:bg-bg-light/50 transition-colors"
-                >
-                  <td className="py-4 pr-4 font-semibold text-neutral">
-                    {order.id}
-                  </td>
-                  <td className="py-4 pr-4 text-sm text-neutral/70">
-                    {new Date(order.date).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 pr-4 text-sm text-neutral/70">
-                    {order.items} item(s)
-                  </td>
-                  <td className="py-4 pr-4 font-bold text-primary">
-                    ${order.total}
-                  </td>
-                  <td className="py-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${config.color}`}
-                    >
-                      <Icon size={14} />
-                      {order.status.charAt(0).toUpperCase() +
-                        order.status.slice(1)}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                return (
+                  <tr
+                    key={order._id}
+                    className="hover:bg-bg-light/50 transition-colors"
+                  >
+                    <td className="py-4 pr-4 font-semibold text-neutral">
+                      #{order._id.slice(-6).toUpperCase()}
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-neutral/70">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-neutral/70">
+                      {order.items.length} item(s)
+                    </td>
+                    <td className="py-4 pr-4 font-bold text-primary">
+                      ${order.total}
+                    </td>
+                    <td className="py-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${config.color}`}
+                      >
+                        <Icon size={14} />
+                        {order.orderStatus.charAt(0).toUpperCase() +
+                          order.orderStatus.slice(1)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

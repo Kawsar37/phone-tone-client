@@ -1,22 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
+import { useAuth } from "@/providers/AuthProvider";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
@@ -25,28 +24,12 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-
     try {
-      const { data, error } = await authClient.signUp.email({
-        name,
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error("Registration Failed", {
-          description: error.message || "Could not create account.",
-        });
-        return;
-      }
-
-      toast.success("Account Created!", {
-        description: "Welcome to PhoneTone.",
-      });
-      router.push("/"); // Redirect to home
-      router.refresh();
-    } catch (err) {
-      toast.error("Something went wrong. Please try again.");
+      await register(name, email, password);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Could not create account.";
+      toast.error("Registration Failed", { description: message });
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +40,7 @@ export default function RegisterPage() {
       <h1 className="text-2xl font-bold text-neutral text-center mb-2">
         Create Account
       </h1>
-      <p className="text-neutral/60 text-center mb-8">
+      <p className="text-neutral/60 text-center mb-8 text-sm">
         Join PhoneTone to start shopping
       </p>
 

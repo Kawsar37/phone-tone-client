@@ -19,7 +19,7 @@ export default function LoginPage() {
     toast.info("Demo credentials filled!");
   };
 
-  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
@@ -38,7 +38,7 @@ export default function LoginPage() {
       <h1 className="text-2xl font-bold text-neutral text-center mb-2">
         Welcome Back
       </h1>
-      <p className="text-neutral/60 text-center mb-8">
+      <p className="text-neutral/60 text-center mb-8 text-sm">
         Sign in to your PhoneTone account
       </p>
 

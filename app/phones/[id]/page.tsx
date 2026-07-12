@@ -17,6 +17,7 @@ import { PhoneCard } from "@/components/shared/PhoneCard";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useSession } from "@/lib/auth-client";
+import { useCart } from "@/hooks/use-cart";
 
 // --- MOCK DATA (Will be replaced by API fetch later) ---
 const mockPhone = {
@@ -121,23 +122,31 @@ export default function PhoneDetailsPage() {
   const [mainImage, setMainImage] = useState(mockPhone.images[0]);
   const [selectedColor, setSelectedColor] = useState(mockPhone.colors[0]);
   const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
   const [activeTab, setActiveTab] = useState<"overview" | "specs" | "reviews">(
     "overview",
   );
 
   const { data: session } = useSession();
-  console.log("User session:", session); // For debugging purposes
+  console.log("User session:", session);
 
   const handleAddToCart = () => {
-    if (session?.user) {
-      toast.success("Added to Cart!", {
-        description: `${quantity}x ${mockPhone.name} (${selectedColor}) added to your cart.`,
-      });
-    } else {
+    if (!session?.user) {
       toast.error("Please log in to add items to your cart.", {
         description: "You need to be logged in to add items to your cart.",
       });
+      return;
     }
+    addToCart({
+      id: mockPhone.id,
+      name: mockPhone.name,
+      image: mockPhone.images[0],
+      price: mockPhone.price,
+    });
+
+    toast.success("Added to Cart!", {
+      description: `${quantity}x ${mockPhone.name} (${selectedColor}) added to your cart.`,
+    });
   };
 
   return (

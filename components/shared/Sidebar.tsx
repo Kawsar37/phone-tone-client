@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/providers/AuthProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FiLogOut } from "react-icons/fi";
@@ -18,6 +19,7 @@ interface SidebarProps {
 
 export function Sidebar({ links, title, onLogout }: SidebarProps) {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   return (
     <aside className="w-full lg:w-64 flex-shrink-0">
@@ -48,7 +50,7 @@ export function Sidebar({ links, title, onLogout }: SidebarProps) {
         {onLogout && (
           <div className="pt-4 mt-4 border-t border-neutral/10">
             <button
-              onClick={onLogout}
+              onClick={() => logout()}
               className="flex w-full items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
             >
               <FiLogOut size={18} />

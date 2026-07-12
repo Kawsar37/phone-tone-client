@@ -1,15 +1,16 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { FiMail, FiPhone, FiCalendar, FiLoader } from "react-icons/fi";
+import { useAuth } from "@/providers/AuthProvider";
 
 export default function UserProfilePage() {
-  const { data: session, isPending } = useSession();
-  const memberSince = session?.user?.createdAt
-    ? new Date(session.user.createdAt).toLocaleDateString()
+  const { user, isLoading } = useAuth();
+
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString()
     : "Unknown";
 
-  if (isPending) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64 bg-white rounded-xl border border-neutral/5">
         <FiLoader className="animate-spin text-primary" size={32} />
@@ -17,15 +18,13 @@ export default function UserProfilePage() {
     );
   }
 
-  if (!session?.user) {
+  if (!user) {
     return (
-      <div className="text-center text-neutral/60">
+      <div className="text-center text-neutral/60 py-12">
         Please log in to view your profile.
       </div>
     );
   }
-
-  const user = session.user;
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-xl border border-neutral/5 shadow-sm">
@@ -44,8 +43,7 @@ export default function UserProfilePage() {
           </h3>
           <p className="text-neutral/60 flex items-center gap-1.5 justify-center sm:justify-start mt-1">
             <FiCalendar size={14} />
-            Member since{" "}
-            {memberSince}
+            Member since {memberSince}
           </p>
         </div>
       </div>
@@ -73,7 +71,7 @@ export default function UserProfilePage() {
               Phone Number
             </p>
             <p className="text-sm font-medium text-neutral">
-              {(user as { phone?: string }).phone || "Not provided"}
+              {user.phone || "Not provided"}
             </p>
           </div>
         </div>

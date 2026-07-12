@@ -1,29 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getUser } from "./lib/session";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+// This function can be marked `async` if using `await` inside
+export async function proxy(request: NextRequest) {
+  const user = await getUser();
 
-  const token = request.cookies.get("token")?.value;
-
-  const protectedRoutes = ["/admin", "/user", "/cart", "/checkout"];
-  const isProtectedRoute = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
-
-  if (isProtectedRoute && !token) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const authRoutes = ["/login", "/register"];
-  if (authRoutes.includes(pathname) && token) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  return NextResponse.next();
+  if (!user) return NextResponse.redirect(new URL("/login", request.url));
 }
 
+// Alternatively, you can use a default export:
+// export default function proxy(request: NextRequest) { ... }
+
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/admin/:path*", "/cart/:path*", "/cart"],
 };

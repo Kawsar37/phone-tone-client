@@ -39,13 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchUser();
+    let isMounted = true;
+    const initializeAuth = async () => {
+      if (isMounted) {
+        await fetchUser();
+      }
+    };
+    initializeAuth();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     const { data } = await authAPI.login({ email, password });
     setUser(data.user);
-    router.push("/");
+    router.push(data.user.role === "admin" ? "/admin" : "/");
     router.refresh();
     toast.success("Logged in successfully");
   };

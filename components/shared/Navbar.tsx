@@ -4,10 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { FiMenu, FiX, FiShoppingCart, FiUser, FiLogOut } from "react-icons/fi";
 import { useAuth } from "@/providers/AuthProvider";
+import { usePathname } from "next/navigation";
 
 export function Navbar() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
+
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
 
   const navLinks = [
     { href: "/", label: "Home" },

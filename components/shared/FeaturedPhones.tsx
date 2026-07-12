@@ -14,7 +14,6 @@ export function FeaturedPhones() {
   useEffect(() => {
     const fetchFeaturedPhones = async () => {
       try {
-        // Fetch the top 4 highest-rated phones from the backend
         const { data } = await phoneAPI.getPhones({ limit: 4, sort: "rating" });
         setPhones(data.phones);
       } catch {

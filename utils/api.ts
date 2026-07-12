@@ -32,6 +32,8 @@ export const phoneAPI = {
   addPhone: (data: { name: string; brand: string; images: string[] }) =>
     api.post("/api/phones", data),
   deletePhone: (id: string) => api.delete(`/api/phones/${id}`),
+  updatePhone: (id: string, data: Partial<IPhone>) =>
+    api.patch(`/api/phones/${id}`, data),
 };
 
 export const cartAPI = {

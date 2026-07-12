@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { FiLoader, FiCheck } from "react-icons/fi";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { phoneAPI } from "@/utils/api";
+import { toast } from "sonner";
 
 export default function AddPhonePage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -23,24 +27,55 @@ export default function AddPhonePage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call to backend (Backend will trigger Gemini API)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const imagesArray = formData.images
+        .split(/[\n,]+/)
+        .map((url) => url.trim())
+        .filter((url) => url.length > 0);
 
-    toast.success("Phone Added!", {
-      description:
-        "Backend is fetching specs via AI. Check 'Manage Phones' shortly.",
-    });
-    setFormData({ name: "", brand: "", images: "" });
-    setIsSubmitting(false);
+      if (imagesArray.length === 0) {
+        toast.error("Please provide at least one valid image URL.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      await phoneAPI.addPhone({
+        name: formData.name,
+        brand: formData.brand,
+        images: imagesArray,
+      });
+
+      toast.success("Phone Added Successfully!", {
+        description:
+          "Gemini AI generated the specs and saved it to the database.",
+      });
+
+      setFormData({ name: "", brand: "", images: "" });
+      router.refresh();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to add phone. Check console for details.";
+      toast.error("AI Generation Failed", { description: message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-xl border border-neutral/5 shadow-sm max-w-2xl">
-      <h2 className="text-xl font-bold text-neutral mb-6">Add New Phone</h2>
-      <p className="text-sm text-neutral/60 mb-6">
-        Provide the phone name and images. Our AI will automatically fetch and
-        populate the detailed specifications.
-      </p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+          <FiCheck size={20} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-neutral">Add New Phone</h2>
+          <p className="text-sm text-neutral/60">
+            AI will automatically fetch detailed specifications.
+          </p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
@@ -68,15 +103,27 @@ export default function AddPhonePage() {
             name="images"
             value={formData.images}
             onChange={handleChange}
-            rows={3}
+            rows={4}
             required
             className="w-full px-4 py-2.5 rounded-lg border border-neutral/20 bg-white text-neutral placeholder-neutral/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none text-sm"
-            placeholder="Paste image URLs here, separated by commas..."
+            placeholder="Paste image URLs here. Separate multiple URLs with a comma or a new line..."
           />
         </div>
 
+        <div className="bg-bg-light p-4 rounded-lg border border-neutral/10">
+          <p className="text-xs text-neutral/60">
+            <strong className="text-neutral">How it works:</strong> Once you
+            click submit, our backend will send the phone name to Google Gemini
+            AI. The AI will generate the price, display, camera, battery, and
+            processor specs in strict JSON format, merge your images, and save
+            it directly to MongoDB.
+          </p>
+        </div>
+
         <Button type="submit" isLoading={isSubmitting}>
-          Generate Specs & Add Phone
+          {isSubmitting
+            ? "Generating Specs via AI..."
+            : "Generate Specs & Add Phone"}
         </Button>
       </form>
     </div>

@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiLoader, FiTrash2 } from "react-icons/fi";
+import { FiLoader, FiTrash2, FiEdit2, FiX } from "react-icons/fi";
 import { phoneAPI } from "@/utils/api";
 import { IPhone } from "@/types";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 
 export default function AdminPhonesPage() {
   const [phones, setPhones] = useState<IPhone[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPhone, setEditingPhone] = useState<IPhone | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchPhones = async () => {
@@ -32,6 +39,41 @@ export default function AdminPhonesPage() {
       toast.success("Phone deleted successfully");
     } catch {
       toast.error("Failed to delete phone");
+    }
+  };
+
+  const openEditModal = (phone: IPhone) => {
+    setEditingPhone(phone);
+    setIsModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingPhone) return;
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      const updateData = {
+        name: formData.get("name") as string,
+        brand: formData.get("brand") as string,
+        price: Number(formData.get("price")),
+        stock: Number(formData.get("stock")),
+        shortDescription: formData.get("shortDescription") as string,
+      };
+
+      const { data } = await phoneAPI.updatePhone(editingPhone._id, updateData);
+
+      setPhones((prev) =>
+        prev.map((p) => (p._id === editingPhone._id ? data.phone : p)),
+      );
+      toast.success("Phone updated successfully");
+      setIsModalOpen(false);
+      setEditingPhone(null);
+    } catch {
+      toast.error("Failed to update phone");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,18 +136,112 @@ export default function AdminPhonesPage() {
                     {phone.stock} units
                   </td>
                   <td className="py-4 text-right">
-                    <button
-                      onClick={() => handleDelete(phone._id)}
-                      className="p-2 text-neutral/60 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openEditModal(phone)}
+                        className="p-2 text-neutral/60 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <FiEdit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(phone._id)}
+                        className="p-2 text-neutral/60 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isModalOpen && editingPhone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-neutral/50 backdrop-blur-sm"
+            onClick={() => setIsModalOpen(false)}
+          />
+          <div className="relative bg-white rounded-xl shadow-2xl border border-neutral/5 w-full max-w-lg p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-neutral">
+                Edit Phone Details
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 text-neutral/60 hover:bg-bg-light rounded-lg transition-colors"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <Input
+                label="Phone Name"
+                name="name"
+                defaultValue={editingPhone.name}
+                required
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Brand"
+                  name="brand"
+                  defaultValue={editingPhone.brand}
+                  required
+                />
+                <Input
+                  label="Stock"
+                  name="stock"
+                  type="number"
+                  defaultValue={editingPhone.stock}
+                  required
+                />
+              </div>
+              <Input
+                label="Price ($)"
+                name="price"
+                type="number"
+                step="0.01"
+                defaultValue={editingPhone.price}
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-neutral mb-1.5">
+                  Short Description
+                </label>
+                <textarea
+                  name="shortDescription"
+                  defaultValue={editingPhone.shortDescription}
+                  rows={3}
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-neutral/20 bg-white text-neutral focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  isLoading={isSubmitting}
+                  className="flex-1"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -108,14 +108,16 @@ export function Navbar() {
           ))}
 
           <div className="pt-4 border-t border-neutral/10 flex flex-col gap-3">
-            <Link
-              href="/cart"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-bg-light text-neutral hover:bg-neutral/10 transition-colors"
-            >
-              <FiShoppingCart size={20} />
-              <span className="font-medium">My Cart</span>
-            </Link>
+            {user && (
+              <Link
+                href="/cart"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg bg-bg-light text-neutral hover:bg-neutral/10 transition-colors"
+              >
+                <FiShoppingCart size={20} />
+                <span className="font-medium">My Cart</span>
+              </Link>
+            )}
 
             {user ? (
               <>

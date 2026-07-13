@@ -46,12 +46,14 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Link
-            href="/cart"
-            className="relative p-2 text-neutral hover:text-primary transition-colors"
-          >
-            <FiShoppingCart size={22} />
-          </Link>
+          {user && (
+            <Link
+              href="/cart"
+              className="relative p-2 text-neutral hover:text-primary transition-colors"
+            >
+              <FiShoppingCart size={22} />
+            </Link>
+          )}
 
           {user ? (
             <div className="flex items-center gap-3">

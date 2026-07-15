@@ -46,7 +46,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          {user && (
+          {user && user.role !== "admin" && (
             <Link
               href="/cart"
               className="relative p-2 text-neutral hover:text-primary transition-colors"
@@ -108,7 +108,7 @@ export function Navbar() {
           ))}
 
           <div className="pt-4 border-t border-neutral/10 flex flex-col gap-3">
-            {user && (
+            {user && user.role !== "admin" && (
               <Link
                 href="/cart"
                 onClick={() => setIsOpen(false)}

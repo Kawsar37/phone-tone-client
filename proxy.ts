@@ -6,10 +6,8 @@ import { getUser } from "./lib/session";
 export async function proxy(request: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.redirect(new URL("/login", request.url));
+  return NextResponse.next();
 }
-
-// Alternatively, you can use a default export:
-// export default function proxy(request: NextRequest) { ... }
 
 export const config = {
   matcher: ["/admin/:path*", "/cart/:path*", "/cart"],

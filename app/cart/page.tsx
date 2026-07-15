@@ -21,33 +21,7 @@ import { useAuth } from "@/providers/AuthProvider";
 export default function CartPage() {
   const [cart, setCart] = useState<ICartItem[]>([]);
   const [loading, setLoading] = useState(true);
-
   const { user } = useAuth();
-  if (user?.role === "admin") {
-    return (
-      <>
-        <Navbar />
-        <main className="flex min-h-[60vh] items-center justify-center bg-bg-light">
-          <div className="bg-white p-10 rounded-2xl shadow-sm border border-neutral/5 text-center max-w-md">
-            <div className="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-primary/10 text-primary mb-6">
-              <FiShoppingBag size={32} />
-            </div>
-            <h1 className="text-2xl font-bold text-neutral mb-2">
-              Admins cannot access the cart
-            </h1>
-            <p className="text-neutral/60 mb-8">
-              Looks like you are logged in as an admin. Please log in as a
-              regular user to access the cart.
-            </p>
-            <Link href="/phones">
-              <Button>Explore Phones</Button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
 
   const fetchCart = async () => {
     setLoading(true);
@@ -60,10 +34,6 @@ export default function CartPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
 
   const handleQuantityChange = async (
     cartItemId: string,
@@ -91,6 +61,37 @@ export default function CartPage() {
       toast.error("Failed to remove item");
     }
   };
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  // 👇 3. NOW IT IS SAFE TO DO EARLY RETURNS
+  if (user?.role === "admin") {
+    return (
+      <>
+        <Navbar />
+        <main className="flex min-h-[60vh] items-center justify-center bg-bg-light">
+          <div className="bg-white p-10 rounded-2xl shadow-sm border border-neutral/5 text-center max-w-md">
+            <div className="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-primary/10 text-primary mb-6">
+              <FiShoppingBag size={32} />
+            </div>
+            <h1 className="text-2xl font-bold text-neutral mb-2">
+              Admins cannot access the cart
+            </h1>
+            <p className="text-neutral/60 mb-8">
+              Looks like you are logged in as an admin. Please log in as a
+              regular user to access the cart.
+            </p>
+            <Link href="/phones">
+              <Button>Explore Phones</Button>
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.phoneId.price * item.quantity,

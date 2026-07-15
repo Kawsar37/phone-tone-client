@@ -53,6 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const { data } = await authAPI.login({ email, password });
+
+    localStorage.setItem("token", data.token);
+
     setUser(data.user);
     router.push(data.user.role === "admin" ? "/admin" : "/");
     router.refresh();
@@ -61,18 +64,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string) => {
     const { data } = await authAPI.register({ name, email, password });
+
+    localStorage.setItem("token", data.token);
+
     setUser(data.user);
-    router.push("/");
+    router.push(data.user.role === "admin" ? "/admin" : "/");
     router.refresh();
     toast.success("Account created successfully");
   };
 
   const logout = async () => {
-    await authAPI.logout();
-    setUser(null);
-    router.push("/login");
-    router.refresh();
-    toast.success("Logged out successfully");
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error("Logout API call failed", error);
+    } finally {
+      localStorage.removeItem("token");
+
+      setUser(null);
+      router.push("/login");
+      router.refresh();
+      toast.success("Logged out successfully");
+    }
   };
 
   return (
